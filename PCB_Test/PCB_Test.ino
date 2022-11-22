@@ -5,7 +5,7 @@ FunctionDesc:
 CreateDate:
 Version:
 Author: Morgan
-ModifyHistory:	2022.11.21
+ModifyHistory:	2022.11.22
 Remark:
 
 Pin Define:
@@ -671,32 +671,6 @@ void SHOW_I2C_2nd_Data(uint8_t device, int Reg)
   Serial.print(I2C_Read_2ndBYTE(device, Reg), HEX);
 }
 // --------------------------------------------------------------
-void READ_U502(int REG)
-{
-  Serial.print(F("MCP4651(U502)(0x"));
-  if (REG < 0x10)
-  {
-    Serial.print(F("0"));
-  }
-  Serial.print(REG, HEX);
-  Serial.print(F("): "));
-  SHOW_I2C_2nd_Data(AddrU502, REG);
-  Serial.println();
-}
-// --------------------------------------------------------------
-void READ_U207(int REG)
-{
-  Serial.print(F("MCP46HV51(U207): "));
-  SHOW_I2C_2nd_Data(AddrU207, REG);
-  Serial.println();
-}
-// --------------------------------------------------------------
-void READ_U257(int REG)
-{
-  Serial.print(F("MCP46HV51(U257): "));
-  SHOW_I2C_2nd_Data(AddrU257, REG);
-  Serial.println();
-}
 // --------------------------------------------------------------
 void READ_DEVICE_REG(int device, int REG)
 {
@@ -708,10 +682,10 @@ void READ_DEVICE_REG(int device, int REG)
     Serial.print(F("MCP4651(U502):  "));
     break;
   case AddrU207:
-    Serial.print(F("MCP46HV51(U207):"));
+    Serial.print(F("MCP45HV51(U207):"));
     break;
   case AddrU257:
-    Serial.print(F("MCP46HV51(U257):"));
+    Serial.print(F("MCP45HV51(U257):"));
     break;
   case AddrU110:
     Serial.print(F("TCA9539(U110):  "));

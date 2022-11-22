@@ -8,7 +8,7 @@
 
 # Revision History
 
-- 20221121 - add PCB_Test project for our production line doing PCB testing
+- 20221122 - add PCB_Test project for our production line doing PCB testing
 - 20221111 - add LCD1602_Keypad project, it is used for replacing the LCD4Bit_modExample project.
 - 20221111 : add DC_Motor_Test01 project
 - 20221111 : add Speed_Sensor_LM393 project
