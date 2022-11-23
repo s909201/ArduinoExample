@@ -5,7 +5,7 @@ FunctionDesc:
 CreateDate:
 Version:
 Author: Morgan
-ModifyHistory:	2022.11.22
+ModifyHistory:	2022.11.23
 Remark:
 
 Pin Define:
@@ -40,10 +40,10 @@ const uint8_t LED_PIN{13};             ///< Built-in Arduino green LED pin
 // #define I2C_SDA 27
 // #define I2C_SCL 28
 
-#define AddrU502 0x2D
-#define AddrU207 0x3E
-#define AddrU257 0x3F
-#define AddrU110 0x74
+#define AddrU502 0x2D // MCP4651
+#define AddrU207 0x3E // MCP45HV51
+#define AddrU257 0x3F // MCP45HV51
+#define AddrU110 0x74 // TCA9539
 
 // LCD GPIO pin to Arduino
 const int pin_RS = 8;
@@ -63,7 +63,6 @@ int key = -1;
 int oldkey = -1;
 
 // UART parameters
-char inChar;
 bool stringComplete = false;           // whether the string is complete
 String inputString = "";               // a String to hold incoming data
 char text_buffer[SPRINTF_BUFFER_SIZE]; ///< Buffer for sprintf()/sscanf()
@@ -77,7 +76,6 @@ uint16_t LCDEventNo;
 volatile unsigned char TASK_BTN_STEP;
 volatile unsigned long TASK_BTN_TIMER;
 
-// uint8_t dummy;
 // --------------------------------------------------------------
 void setup()
 {
@@ -705,7 +703,7 @@ void READ_DEVICE_REG(int device, int REG)
   Serial.print(REG, HEX);
   Serial.print(F("]= "));
 
-  // data = I2C_Read_1BYTE(device, REG);
+  // data = I2C_Read_1stBYTE(device, REG);
   // data = I2C_Read_2ndBYTE(device, REG);
 
   switch (device)
@@ -720,7 +718,7 @@ void READ_DEVICE_REG(int device, int REG)
     data = I2C_Read_2ndBYTE(device, REG);
     break;
   case AddrU110:
-    data = I2C_Read_1BYTE(device, REG);
+    data = I2C_Read_1stBYTE(device, REG);
     break;
   default:
     Serial.println(F("Device Error! 2"));
@@ -751,35 +749,31 @@ void I2C_Write(uint8_t device, uint8_t address, uint8_t value)
   {
     Serial.println(F("I2C no ACK"));
   }
-  delay(10);
 }
 // --------------------------------------------------------------
 
 // --------------------------------------------------------------
-uint8_t I2C_Read_1BYTE(int device, int address)
+uint8_t I2C_Read_1stBYTE(int device, int address)
+{
+  uint8_t data;
+  Wire.beginTransmission(device);
+  Wire.write(byte(address));
+  Wire.endTransmission(); // stop transmitting
+  Wire.requestFrom(device, 1);
+  data = Wire.read(); // Read 1 Byte data
+  return data;
+}
+// --------------------------------------------------------------
+uint8_t I2C_Read_2ndBYTE(int device, int address)
 {
   uint8_t data, dummy;
   Wire.beginTransmission(device);
   Wire.write(byte(address));
-  Wire.endTransmission(); // stop transmitting
+  Wire.endTransmission();
+
   Wire.requestFrom(device, 2);
-  data = Wire.read(); // dummy catch 1 byte
-  // delay(2);
-  return data;
-}
-// --------------------------------------------------------------
-uint8_t I2C_Read_2ndBYTE(int SLAVE_ADDRESS, int address)
-{
-  uint8_t data, dummy;
-  Wire.beginTransmission(SLAVE_ADDRESS);
-  Wire.write(byte(address));
-  Wire.requestFrom(SLAVE_ADDRESS, 2);
   dummy = Wire.read(); // ignore D8
   data = Wire.read(); // D0~D7
-  Wire.endTransmission();
-  // delay(2);
   return data;
 }
-// --------------------------------------------------------------
-
 // --------------------------------------------------------------
