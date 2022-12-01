@@ -1,11 +1,11 @@
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-FileName: PCB_Test.ino
+FileName: TCB_Test.ino
 ProjectName:
 FunctionDesc:
 CreateDate:
 Version:
 Author: Morgan
-ModifyHistory:	2022.11.23
+ModifyHistory:	2022.12.01
 Remark:
 
 Pin Define:
@@ -114,11 +114,7 @@ void TASK_INIT()
   TASK_BTN_TIMER = 0;
 
   digitalWrite(pin_BL, HIGH); // Backlight, HIGH: Turn on, LOW: Turn off
-
-  // Print_CMD_Format();
-  Serial.println(F("Valid CMD Format: [Type] [CMD 1] [CMD 2]"));
-  Serial.println(F("Example: a 0 0"));
-  Serial.println("\nReady");
+  // Serial.println("# ");
 }
 // --------------------------------------------------------------
 // Convert ADC value to key number
@@ -253,7 +249,7 @@ void TASK_EVENT()
 // --------------------------------------------------------------
 void Print_CMD_Format()
 {
-  // Serial.println(F("Unknown command"));
+  Serial.println(F("Unknown command"));
   Serial.println(F("Valid CMD Format: [Type] [CMD 1] [CMD 2]"));
   Serial.println(F("Example: a 0 0"));
   LCDEvent = 1;
@@ -320,14 +316,14 @@ void readCommand()
     else
     {
       text_buffer[text_index] = 0; // Add the termination character
-      Serial.print(F("\nReceive: "));
-      Serial.write(text_buffer); // debug
-      Serial.print(F("\n"));
-
-      if (text_buffer[0] == 'a' && text_buffer[1] == ' ') // [a x x]
+      if (text_buffer[0] == 0x00) // " ", 0x0D = 13 = CR, for JL
       {
-        // Serial.println(F("a class cmd"));
-
+        Serial.println("# ");
+        lcd.setCursor(0, 1);
+        lcd.print(F("#: DONE     "));
+      }
+      else if (text_buffer[0] == 'a' && text_buffer[1] == ' ') // [a x x]
+      {
         if (text_buffer[2] == '0' && text_buffer[3] == ' ')
         {
           if (text_buffer[4] == '0') // [a 0 0]
@@ -369,15 +365,31 @@ void readCommand()
 
             Serial.println(F("Done"));
           }
+          else if (text_buffer[4] == '5') // [a 0 5]
+          {
+            Serial.println(F("@OK"));
+            lcd.setCursor(0, 1);
+            lcd.print(F("a 0 5: DONE     "));
+          }
+          else if (text_buffer[4] == '6') // [a 0 6]
+          {
+            Serial.println(F("@HINT"));
+            lcd.setCursor(0, 1);
+            lcd.print(F("a 0 6: DONE     "));
+          }
+          else if (text_buffer[4] == '7') // [a 0 7]
+          {
+            Serial.println("@ERR");
+            lcd.setCursor(0, 1);
+            lcd.print(F("a 0 7: DONE     "));
+          }
           else
           {
-            Serial.println(F("Unknown command"));
             Print_CMD_Format();
           }
         }
         else
         {
-          Serial.println(F("Unknown command"));
           Print_CMD_Format();
         }
       }
@@ -642,13 +654,11 @@ void readCommand()
         }
         else
         {
-          Serial.println(F("Unknown command"));
           Print_CMD_Format();
         }
       }
       else
       {
-        Serial.println(F("Unknown command"));
         Print_CMD_Format();
       }
 
@@ -776,4 +786,5 @@ uint8_t I2C_Read_2ndBYTE(int device, int address)
   data = Wire.read(); // D0~D7
   return data;
 }
+// --------------------------------------------------------------
 // --------------------------------------------------------------
