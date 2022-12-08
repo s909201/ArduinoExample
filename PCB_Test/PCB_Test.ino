@@ -1,11 +1,11 @@
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-FileName: TCB_Test.ino
+FileName: PCB_Test.ino
 ProjectName:
 FunctionDesc:
 CreateDate:
 Version:
 Author: Morgan
-ModifyHistory:	2022.12.01
+ModifyHistory:	2022.12.8
 Remark:
 
 Pin Define:
@@ -76,6 +76,7 @@ uint16_t LCDEventNo;
 volatile unsigned char TASK_BTN_STEP;
 volatile unsigned long TASK_BTN_TIMER;
 
+uint8_t count; // Counter for PASS items
 // --------------------------------------------------------------
 void setup()
 {
@@ -114,7 +115,7 @@ void TASK_INIT()
   TASK_BTN_TIMER = 0;
 
   digitalWrite(pin_BL, HIGH); // Backlight, HIGH: Turn on, LOW: Turn off
-  // Serial.println("# ");
+  Serial.println("# ");
 }
 // --------------------------------------------------------------
 // Convert ADC value to key number
@@ -249,9 +250,7 @@ void TASK_EVENT()
 // --------------------------------------------------------------
 void Print_CMD_Format()
 {
-  Serial.println(F("Unknown command"));
-  Serial.println(F("Valid CMD Format: [Type] [CMD 1] [CMD 2]"));
-  Serial.println(F("Example: a 0 0"));
+  Serial.println("@ERR");
   LCDEvent = 1;
   LCDEventNo = 8;
 }
@@ -328,21 +327,18 @@ void readCommand()
         {
           if (text_buffer[4] == '0') // [a 0 0]
           {
-            // Serial.println(F("a 0 0"));
             I2C_SCAN();
             LCDEvent = 1;
             LCDEventNo = 7;
           }
           else if (text_buffer[4] == '1') // [a 0 1]
           {
-            // Serial.println(F("a 0 1"));
             digitalWrite(pin_BL, HIGH); // Backlight, HIGH: Turn on, LOW: Turn off
             LCDEvent = 1;
             LCDEventNo = 5;
           }
           else if (text_buffer[4] == '2') // [a 0 2]
           {
-            // Serial.println(F("a 0 2"));
             digitalWrite(pin_BL, LOW); // Backlight, HIGH: Turn on, LOW: Turn off
             LCDEvent = 1;
             LCDEventNo = 6;
@@ -406,11 +402,30 @@ void readCommand()
           I2C_Write(AddrU110, 0x03, 0x00);
           I2C_Write(AddrU110, 0x06, 0xE0);
           I2C_Write(AddrU110, 0x07, 0x00);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          READ_DEVICE_REG(AddrU110, 0x06);
-          READ_DEVICE_REG(AddrU110, 0x07);
-          Serial.println(F("Done"));
+          
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x00)
+          {
+            count++;
+          }
+
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x00)
+          {
+            count++;
+          }
+
+          if(READ_DEVICE_REG2(AddrU110, 0x06) == 0xE0)
+          {
+            count++;
+          }
+
+          if(READ_DEVICE_REG2(AddrU110, 0x07) == 0x00)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 4);
+
         }
         else if (text_buffer[2] == '6' && text_buffer[3] == ' ' && text_buffer[4] == 'a') // [c 6 a]
         {
@@ -418,8 +433,16 @@ void readCommand()
           lcd.print(F("c 6 a: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x02, 0x04);
+          
           READ_DEVICE_REG(AddrU110, 0x02);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x04)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+
         }
         else if (text_buffer[2] == '7' && text_buffer[3] == ' ' && text_buffer[4] == 'a') // [c 7 a]
         {
@@ -427,16 +450,26 @@ void readCommand()
           lcd.print(F("c 7 a: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x02, 0x08);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x08)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '7' && text_buffer[3] == ' ' && text_buffer[4] == 'b') // [c 7 b]
         {
           lcd.setCursor(0, 1);
           lcd.print(F("c 7 b: DONE     "));
           // I2C Ctrl
-          READ_DEVICE_REG(AddrU110, 0x00);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x00) == 0xA8)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'b') // [c 8 b]
         {
@@ -445,10 +478,18 @@ void readCommand()
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x10);
           I2C_Write(AddrU207, 0x01, 0xFF);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          READ_DEVICE_REG(AddrU207, 0x01);
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x10)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU207, 0x01) == 0xFF)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 2);
 
-          Serial.println(F("Done"));
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'c') // [c 8 c]
         {
@@ -456,8 +497,14 @@ void readCommand()
           lcd.print(F("c 8 c: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x11);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x11)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+          
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'd') // [c 8 d]
         {
@@ -465,8 +512,13 @@ void readCommand()
           lcd.print(F("c 8 d: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x12);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x12)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'e') // [c 8 e]
         {
@@ -475,10 +527,18 @@ void readCommand()
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x10);
           I2C_Write(AddrU207, 0x01, 0x7F);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          READ_DEVICE_REG(AddrU207, 0x01);
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x10)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU207, 0x01) == 0x7F)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 2);
 
-          Serial.println(F("Done"));
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'f') // [c 8 f]
         {
@@ -486,8 +546,13 @@ void readCommand()
           lcd.print(F("c 8 f: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x00);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x00)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'g') // [c 8 g]
         {
@@ -495,8 +560,14 @@ void readCommand()
           lcd.print(F("c 8 g: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0xC0);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0xC0)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+
         }
         else if (text_buffer[2] == '8' && text_buffer[3] == ' ' && text_buffer[4] == 'h') // [c 8 h]
         {
@@ -504,8 +575,14 @@ void readCommand()
           lcd.print(F("c 8 h: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x80);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x80)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'b') // [c 9 b]
         {
@@ -514,9 +591,18 @@ void readCommand()
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x40);
           I2C_Write(AddrU257, 0x01, 0xFF);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          READ_DEVICE_REG(AddrU257, 0x01);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x40)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU257, 0x01) == 0xFF)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 2);
+
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'c') // [c 9 c]
         {
@@ -524,8 +610,13 @@ void readCommand()
           lcd.print(F("c 9 c: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x44);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x44)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'd') // [c 9 d]
         {
@@ -533,8 +624,13 @@ void readCommand()
           lcd.print(F("c 9 d: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x48);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x48)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'e') // [c 9 e]
         {
@@ -542,8 +638,13 @@ void readCommand()
           lcd.print(F("c 9 e: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x40);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x40)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'f') // [c 9 f]
         {
@@ -551,8 +652,14 @@ void readCommand()
           lcd.print(F("c 9 f: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x00);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x00)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'g') // [c 9 g]
         {
@@ -560,8 +667,13 @@ void readCommand()
           lcd.print(F("c 9 g: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x30);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x30)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '9' && text_buffer[3] == ' ' && text_buffer[4] == 'h') // [c 9 h]
         {
@@ -569,8 +681,13 @@ void readCommand()
           lcd.print(F("c 9 h: DONE     "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x03, 0x20);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x20)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         // ------------------------------------------------------
         // case: [c 10 x]
@@ -583,11 +700,25 @@ void readCommand()
           I2C_Write(AddrU257, 0x01, 0xFF);
           I2C_Write(AddrU110, 0x02, 0x0E);
           I2C_Write(AddrU110, 0x03, 0x50);
-          READ_DEVICE_REG(AddrU207, 0x01);
-          READ_DEVICE_REG(AddrU257, 0x01);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          READ_DEVICE_REG(AddrU110, 0x03);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU207, 0x01) == 0xFF)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU257, 0x01) == 0xFF)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x0E)
+          {
+            count++;
+          }
+          if(READ_DEVICE_REG2(AddrU110, 0x03) == 0x50)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 4);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '0' && text_buffer[4] == ' ' && text_buffer[5] == 'c') // [c 10 c]
         {
@@ -595,8 +726,13 @@ void readCommand()
           lcd.print(F("c 10 c: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x02, 0x08);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x08)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '1' && text_buffer[4] == ' ' && text_buffer[5] == 'a') // [c 11 a]
         {
@@ -604,8 +740,13 @@ void readCommand()
           lcd.print(F("c 11 a: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x02, 0x04);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x04)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '1' && text_buffer[4] == ' ' && text_buffer[5] == 'f') // [c 11 f]
         {
@@ -613,8 +754,13 @@ void readCommand()
           lcd.print(F("c 11 f: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU502, 0x10, 0x1F);
-          READ_DEVICE_REG(AddrU502, 0x10);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU502, 0x10) == 0x1F)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '1' && text_buffer[4] == ' ' && text_buffer[5] == 'g') // [c 11 g]
         {
@@ -622,8 +768,14 @@ void readCommand()
           lcd.print(F("c 11 g: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU502, 0x10, 0x7F);
-          READ_DEVICE_REG(AddrU502, 0x10);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU502, 0x10) == 0x7F)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
+
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '1' && text_buffer[4] == ' ' && text_buffer[5] == 'l') // [c 11 l]
         {
@@ -631,8 +783,13 @@ void readCommand()
           lcd.print(F("c 11 l: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU502, 0x00, 0x1F);
-          READ_DEVICE_REG(AddrU502, 0x00);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU502, 0x00) == 0x1F)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '1' && text_buffer[4] == ' ' && text_buffer[5] == 'm') // [c 11 m]
         {
@@ -640,8 +797,13 @@ void readCommand()
           lcd.print(F("c 11 m: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU502, 0x00, 0x7F);
-          READ_DEVICE_REG(AddrU502, 0x00);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU502, 0x00) == 0x7F)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else if (text_buffer[2] == '1' && text_buffer[3] == '3' && text_buffer[4] == ' ' && text_buffer[5] == '0') // [c 13 0]
         {
@@ -649,8 +811,13 @@ void readCommand()
           lcd.print(F("c 13 0: DONE    "));
           // I2C Ctrl
           I2C_Write(AddrU110, 0x02, 0x00);
-          READ_DEVICE_REG(AddrU110, 0x02);
-          Serial.println(F("Done"));
+          // Replay to AP
+          count = 0;
+          if(READ_DEVICE_REG2(AddrU110, 0x02) == 0x00)
+          {
+            count++;
+          }
+          Reply_To_AP(count, 1);
         }
         else
         {
@@ -680,9 +847,36 @@ void SHOW_I2C_2nd_Data(uint8_t device, int Reg)
 }
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+uint8_t READ_DEVICE_REG2(int device, int REG)
+{
+  uint8_t data = 0;
+  
+  switch (device)
+  {
+  case AddrU502:
+    data = I2C_Read_2ndBYTE(device, REG);
+    break;
+  case AddrU207:
+    data = I2C_Read_2ndBYTE(device, REG);
+    break;
+  case AddrU257:
+    data = I2C_Read_2ndBYTE(device, REG);
+    break;
+  case AddrU110:
+    data = I2C_Read_1stBYTE(device, REG);
+    break;
+  default:
+    Serial.println("@ERR");
+    break;
+  }
+
+  return data;
+
+}
+// --------------------------------------------------------------
+// --------------------------------------------------------------
 void READ_DEVICE_REG(int device, int REG)
 {
-  // Serial.println(F("TCA9539(U110):"));
   uint8_t data = 0;
   switch (device)
   {
@@ -744,9 +938,20 @@ void READ_DEVICE_REG(int device, int REG)
     Serial.print(F("0x"));
   }
   Serial.println(data, HEX);
+
 }
 // --------------------------------------------------------------
-
+void Reply_To_AP(uint8_t val, uint8_t goal)
+{
+  if(val == goal)
+  {
+    Serial.println(F("@OK"));
+  }
+  else
+  {
+    Serial.println("@ERR");
+  }
+}
 // --------------------------------------------------------------
 // I2C_Write(Device Address, Register, Data)
 void I2C_Write(uint8_t device, uint8_t address, uint8_t value)
@@ -787,4 +992,5 @@ uint8_t I2C_Read_2ndBYTE(int device, int address)
   return data;
 }
 // --------------------------------------------------------------
+
 // --------------------------------------------------------------
